@@ -13,6 +13,7 @@ class ray {
         vec3 direction() const { return dir; }
 
         point3 at(double t) const {
+            // Point at t distance along our ray
             return orig + t * dir;
         }
     public:

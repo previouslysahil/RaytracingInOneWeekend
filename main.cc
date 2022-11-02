@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-bool hit_sphere(const point3& center, double radius, const ray& r) {
+double hit_sphere(const point3& center, double radius, const ray& r) {
     // This math solves for t in this equation:
     // (A + tb - C) * (A + tb - C) = r^2
     // A (origin), b (direction), C (center of sphere) are vectors
@@ -18,19 +18,42 @@ bool hit_sphere(const point3& center, double radius, const ray& r) {
     auto b = 2.0 * dot(oc, r.direction());
     auto c = dot(oc, oc) - radius * radius;
     auto discriminant = b * b - 4 * a * c;
-    return (discriminant > 0);
+    // No real roots meaning no solution
+    if (discriminant < 0) {
+        return -1.0;
+    } else {
+        // Could be either 0 meaning we have one point
+        // of intersection from our ray or > 0 meaning
+        // our ray intersects with the sphere twice
+        return (-b - sqrt(discriminant)) / (2.0 * a);
+    }
 }
 
 color ray_color(const ray &r) {
-    // Checking bounds of our sphere
-    if (hit_sphere(point3(0, 0, -1), 0.5, r)) {
-        return color(1, 0, 0);
+    // Checking bounds of our sphere and shading
+    // This is the t point on our ray at which it
+    // hits the circle
+    auto t = hit_sphere(point3(0, 0, -1), 0.5, r);
+    // Only use rays that intersects with our sphere
+    // twice others we are right on edge of sphere
+    // if intersecting just once
+    if (t > 0.0) {
+        // First we get our surface normal which is
+        // the vector perpindicular to the surface
+        // at point of intersection
+        // This is P - C (where C is center and P
+        // is the surface point)
+        // We normalize to the unit vector for shading
+        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
+        // Mapping xyz unit vector -1:1 to rgb vector 0:1
+        // for shading
+        return 0.5 * color(N.x() + 1, N.y() + 1, N.z() + 1);
     }
     // Unit vector is normalized direction
     vec3 unit_direction = unit_vector(r.direction());
     // Makes t go from 0 to 1 since y is between -1 & 1
     // since y is a unit vector (between -1 & 1)!!
-    auto t = 0.5 * (unit_direction.y() + 1.0);
+    t = 0.5 * (unit_direction.y() + 1.0);
     // Interpolation simple 1.0 - t * v1 + t * v2
     // think dijkstras algorithm (bezier curves)
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
