@@ -9,5 +9,4 @@ main: main.cc
 
 clean:
 	rm main
-	rm *.o
 	rm image.ppm
