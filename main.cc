@@ -4,10 +4,32 @@
 
 #include <iostream>
 
+bool hit_sphere(const point3& center, double radius, const ray& r) {
+    // This math solves for t in this equation:
+    // (A + tb - C) * (A + tb - C) = r^2
+    // A (origin), b (direction), C (center of sphere) are vectors
+    //  t is a real number
+    // Essentially checking if our ray from our origin has
+    // hit the sphere on its way to the viewport plane
+    // Remember t is the distance along our ray from
+    // the origin to the destination
+    vec3 oc = r.origin() - center;
+    auto a = dot(r.direction(), r.direction());
+    auto b = 2.0 * dot(oc, r.direction());
+    auto c = dot(oc, oc) - radius * radius;
+    auto discriminant = b * b - 4 * a * c;
+    return (discriminant > 0);
+}
+
 color ray_color(const ray &r) {
+    // Checking bounds of our sphere
+    if (hit_sphere(point3(0, 0, -1), 0.5, r)) {
+        return color(1, 0, 0);
+    }
     // Unit vector is normalized direction
     vec3 unit_direction = unit_vector(r.direction());
-    // Not too sure why t calculated like this
+    // Makes t go from 0 to 1 since y is between -1 & 1
+    // since y is a unit vector (between -1 & 1)!!
     auto t = 0.5 * (unit_direction.y() + 1.0);
     // Interpolation simple 1.0 - t * v1 + t * v2
     // think dijkstras algorithm (bezier curves)
