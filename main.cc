@@ -14,10 +14,10 @@ double hit_sphere(const point3& center, double radius, const ray& r) {
     // Remember t is the distance along our ray from
     // the origin to the destination
     vec3 oc = r.origin() - center;
-    auto a = dot(r.direction(), r.direction());
-    auto b = 2.0 * dot(oc, r.direction());
-    auto c = dot(oc, oc) - radius * radius;
-    auto discriminant = b * b - 4 * a * c;
+    auto a = r.direction().length_squared();
+    auto half_b = dot(oc, r.direction());
+    auto c = oc.length_squared() - radius * radius;
+    auto discriminant = half_b * half_b - a * c;
     // No real roots meaning no solution
     if (discriminant < 0) {
         return -1.0;
@@ -25,7 +25,7 @@ double hit_sphere(const point3& center, double radius, const ray& r) {
         // Could be either 0 meaning we have one point
         // of intersection from our ray or > 0 meaning
         // our ray intersects with the sphere twice
-        return (-b - sqrt(discriminant)) / (2.0 * a);
+        return (-half_b - sqrt(discriminant)) / a;
     }
 }
 
