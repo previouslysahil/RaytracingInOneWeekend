@@ -18,9 +18,9 @@ class sphere: public hittable {
 
 bool sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) const {
     // This math solves for t in this equation:
-    // (A + tb - C) * (A + tb - C) = r^2
+    // (A + tb - C) * (A + tb - C) = r^2 (equation of sphere)
     // A (origin), b (direction), C (center of sphere) are vectors
-    //  t is a real number
+    // t is a real number
     // Essentially checking if our ray from our origin has
     // hit the sphere on its way to the viewport plane
     // Remember t is the distance along our ray from

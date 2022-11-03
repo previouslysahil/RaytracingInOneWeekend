@@ -12,10 +12,11 @@ void write_color(std::ostream &out, color pixel_color, int samples_per_pixel) {
 
     // Divide the color by the number of samples.
     // averaging for various rays hitting this pixel
+    // also gamma-correct for gamma 2.0
     auto scale = 1.0 / samples_per_pixel;
-    r *= scale;
-    g *= scale;
-    b *= scale;
+    r = sqrt(scale * r);
+    g = sqrt(scale * g);
+    b = sqrt(scale * b);
 
     // Write the translated [0,255] value of each color component.
     // Casting clamps down so using 255.99 preserves rgb's 0-1 range
