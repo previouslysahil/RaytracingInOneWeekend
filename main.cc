@@ -1,83 +1,51 @@
-#include "vec3.h"
-#include "ray.h"
+#include "rtweekend.h"
+
 #include "color.h"
+#include "hittable_list.h"
+#include "sphere.h"
+#include "camera.h"
 
 #include <iostream>
 
-double hit_sphere(const point3& center, double radius, const ray& r) {
-    // This math solves for t in this equation:
-    // (A + tb - C) * (A + tb - C) = r^2
-    // A (origin), b (direction), C (center of sphere) are vectors
-    //  t is a real number
-    // Essentially checking if our ray from our origin has
-    // hit the sphere on its way to the viewport plane
-    // Remember t is the distance along our ray from
-    // the origin to the destination
-    vec3 oc = r.origin() - center;
-    auto a = r.direction().length_squared();
-    auto half_b = dot(oc, r.direction());
-    auto c = oc.length_squared() - radius * radius;
-    auto discriminant = half_b * half_b - a * c;
-    // No real roots meaning no solution
-    if (discriminant < 0) {
-        return -1.0;
-    } else {
-        // Could be either 0 meaning we have one point
-        // of intersection from our ray or > 0 meaning
-        // our ray intersects with the sphere twice
-        return (-half_b - sqrt(discriminant)) / a;
-    }
-}
-
-color ray_color(const ray &r) {
-    // Checking bounds of our sphere and shading
-    // This is the t point on our ray at which it
-    // hits the circle
-    auto t = hit_sphere(point3(0, 0, -1), 0.5, r);
-    // Only use rays that intersects with our sphere
-    // twice others we are right on edge of sphere
-    // if intersecting just once
-    if (t > 0.0) {
-        // First we get our surface normal which is
-        // the vector perpindicular to the surface
-        // at point of intersection
-        // This is P - C (where C is center and P
-        // is the surface point)
-        // We normalize to the unit vector for shading
-        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
-        // Mapping xyz unit vector -1:1 to rgb vector 0:1
+color ray_color(const ray &r, const hittable& world) {
+    // Information of where our ray hit our object
+    hit_record rec;
+    // Go through our worlds object list
+    // and check what we hit
+    if (world.hit(r, 0, infinity, rec)) {
+        // Mapping xyz normal vector -1:1 to rgb vector 0:1
         // for shading
-        return 0.5 * color(N.x() + 1, N.y() + 1, N.z() + 1);
+        return 0.5 * (rec.normal + color(1, 1, 1));
     }
     // Unit vector is normalized direction
     vec3 unit_direction = unit_vector(r.direction());
     // Makes t go from 0 to 1 since y is between -1 & 1
     // since y is a unit vector (between -1 & 1)!!
-    t = 0.5 * (unit_direction.y() + 1.0);
+    auto t = 0.5 * (unit_direction.y() + 1.0);
     // Interpolation simple 1.0 - t * v1 + t * v2
     // think dijkstras algorithm (bezier curves)
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
+// x is horizontal, y is vertical, z is depth
 int main() {
 
     // Image dimensions
     const auto aspect_ratio = 16.0 / 9.0;
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
+    const int samples_per_pixel = 100;
+
+    // World
+    hittable_list world;
+    // Our OG sphere
+    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    // Bascially placing sphere basee right under this 
+    // sphere and making it huge
+    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
 
     // Camera
-    auto viewport_height = 2.0;
-    auto viewport_width = aspect_ratio * viewport_height;
-    auto focal_length = 1.0;
-
-    auto origin = point3(0, 0, 0);
-    auto horizontal = vec3(viewport_width, 0, 0);
-    auto vertical = vec3(0, viewport_height, 0);
-    // makes a vector for lower left with respect to origin combining x and y
-    // from horizontal and vertical respectively,
-    // focal length is used for z
-    auto lower_left_corner = origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
+    camera cam;
 
     // Start of PPM format requires P3 for color space
     // and image width and height
@@ -87,19 +55,26 @@ int main() {
         // Print out to err to see progress
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
-            // u akin to moving along x values of image towards the right
-            auto u = double(i) / (image_width-1);
-            // v akin to moving along y values of image towards the bottom
-            auto v = double(j) / (image_height-1);
-            // Generates the 'ray' for each pixel starting at left top,
-            // moving right horizontally, and moving down vertically,
-            // - origin for origin offset
-            ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-            // Makes color by using unit direction and y coordinate to
-            // generate gradient between white and blue
-            color pixel_color = ray_color(r);
-            // Formats for ppm
-            write_color(std::cout, pixel_color);
+            color pixel_color(0, 0, 0);
+            for (int s = 0; s < samples_per_pixel; s++) {
+                // random double 'swerves' u and v into neighboring pixel
+                // making our ray calculation blend surrounding pixels
+                // calculated ray colors
+                // u akin to moving along x values of image towards the right
+                auto u = double(i + random_double()) / (image_width - 1);
+                // v akin to moving along y values of image towards the bottom
+                auto v = double(j + random_double()) / (image_height - 1);
+                // Create our ray from our cameras origin using our images pixels
+                // to form our direction which we get from u and v
+                ray r = cam.get_ray(u, v);
+                // Adds to color by using unit direction and y coordinate to
+                // generate gradient between white and blue
+                // Also generates the shading for all of our hittable
+                // objects using normal shading
+                pixel_color += ray_color(r, world);
+            }
+            // Formats for ppm and averages our samples
+            write_color(std::cout, pixel_color, samples_per_pixel);
         }
     }
 
