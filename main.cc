@@ -4,6 +4,7 @@
 #include "hittable_list.h"
 #include "sphere.h"
 #include "camera.h"
+#include "material.h"
 
 #include <iostream>
 
@@ -19,22 +20,26 @@ color ray_color(const ray &r, const hittable& world, int depth) {
     // Our hit record is set for our ray r which gives us the point
     // our ray hit and the normal from that point
     if (world.hit(r, 0.001, infinity, rec)) {
-        // Our hit record gave us the normal of the hittable that
-        // our ray intersected with so we find a random point s 
-        // in the normals unit sphere
-        point3 target = rec.p + rec.normal + random_unit_vector();
-        // Then we generate a ray from our normal origin in the random
-        // direction created using our random target point
-        // This recursive ray color calculation keeps going until our
-        // ray stops hitting a and object in our world, falling
-        // past our if statement, use 0.5 to decrease the strength
-        // Since this is recursive eventually the ray will fall through
-        // not hitting any object leading the color to be decided by
-        // the code below which makes our sky, this is what shades
-        // our world spheres UNLESS we exceed our depth which leads
-        // to getting the black color which could lead to black spots
-        // this is probably what happens in blender in glass!!
-        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
+        ray scattered;
+        color attenuation;
+        if (rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+            // This recursive ray color calculation keeps going until our
+            // ray stops hitting a and object in our world, falling
+            // past our if statement, attenuation is our color which (always)
+            // being less than 1 for x, y, z will slowly decrease our color
+            // on each recursive call acting like shading
+            // Since this is recursive eventually the ray will fall through
+            // not hitting any object leading the color to be decided by
+            // the code below which makes our sky, this is what shades
+            // our world object with sky color UNLESS we exceed our depth 
+            // which leads to getting the black color which could lead to black 
+            // spots this is probably what happens in blender in glass!!
+            return attenuation * ray_color(scattered, world, depth - 1);
+        }
+        // Happens in metal when normal and scattered direction
+        // are not similar meaning the ray is bouncing inwards?
+        // so make it black?
+        return color(0, 0, 0);
     }
     // Unit vector is normalized direction
     vec3 unit_direction = unit_vector(r.direction());
@@ -58,11 +63,16 @@ int main() {
 
     // World
     hittable_list world;
-    // Our OG sphere
-    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
-    // Bascially placing sphere basee right under this 
-    // sphere and making it huge
-    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
+    auto material_center = make_shared<lambertian>(color(0.8, 0.3, 0.3));
+    auto material_left = make_shared<metal>(color(0.8, 0.8, 0.8));
+    auto material_right = make_shared<metal>(color(0.8, 0.6, 0.2));
+
+    world.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
+    world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
+    world.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
 
     // Camera
     camera cam;
