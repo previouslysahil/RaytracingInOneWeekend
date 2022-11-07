@@ -72,11 +72,19 @@ int main() {
     world.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
     world.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
     world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
-    world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),  -0.4, material_left));
+    world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0), -0.45, material_left));
     world.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
 
     // Camera
-    camera cam;
+    // Decides our camera's orientation to the look at point
+    // in it's local axes
+    vec3 local_up_direction = vec3(0, 1, 0);
+    // Where our camera is positioned in our scene
+    point3 lookfrom = point3(-2, 2, 1);
+    // Where we are looking at in our scene
+    point3 lookat = point3(0, 0, -1);
+    // Make our camera with fov 90 and aspect ratio
+    camera cam(lookfrom, lookat, local_up_direction, 20, aspect_ratio);
 
     // Start of PPM format requires P3 for color space
     // and image width and height
