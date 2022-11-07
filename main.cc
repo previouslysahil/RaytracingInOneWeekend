@@ -78,13 +78,17 @@ int main() {
     // Camera
     // Decides our camera's orientation to the look at point
     // in it's local axes
-    vec3 local_up_direction = vec3(0, 1, 0);
+    vec3 vup = vec3(0, 1, 0);
     // Where our camera is positioned in our scene
-    point3 lookfrom = point3(-2, 2, 1);
+    point3 lookfrom = point3(3, 3, 2);
     // Where we are looking at in our scene
     point3 lookat = point3(0, 0, -1);
+    // Distance from lookfrom to look at length
+    auto dist_to_focus = (lookfrom - lookat).length();
+    // Aperture
+    auto aperture = 2.0;
     // Make our camera with fov 90 and aspect ratio
-    camera cam(lookfrom, lookat, local_up_direction, 20, aspect_ratio);
+    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
     // Start of PPM format requires P3 for color space
     // and image width and height
