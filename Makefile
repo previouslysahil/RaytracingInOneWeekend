@@ -5,7 +5,7 @@ image: main
 	./main > image.ppm
 
 main: main.cc
-	g++ -std=c++11 -o main main.cc
+	/usr/bin/g++ -std=c++11 -O2 -o main main.cc
 
 clean:
 	rm -f core \#* *.o image.ppm main
